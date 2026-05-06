@@ -1,4 +1,4 @@
-name: Download to Repository
+name: Download to Repo (Fixed)
 
 on:
   workflow_dispatch:
@@ -7,29 +7,49 @@ on:
         description: 'لینک مستقیم فایل'
         required: true
       filename:
-        description: 'اسم فایل با پسوند (مثلاً video.mp4)'
+        description: 'اسم فایل خروجی (مثلاً video.mp4)'
         required: true
         default: 'video.mp4'
+
+# دسترسی کامل به مخزن
+permissions:
+  contents: write
+
+# حذف اخطار Node.js 20
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   download:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Download file
         run: |
-          curl -L -o "${{ github.event.inputs.filename }}" "${{ github.event.inputs.url }}"
+          curl -L -o "downloaded_file" "${{ github.event.inputs.url }}"
+          echo "Size: $(du -h downloaded_file | cut -f1)"
 
       - name: Split into 20MB parts
         run: |
+          rm -rf parts
           mkdir -p parts
-          split -b 20M -d "${{ github.event.inputs.filename }}" parts/part_
+          split -b 20M -d downloaded_file parts/part_
+          ls -lh parts/
 
-      - name: Commit parts to repository
+      - name: Commit and push changes
         run: |
-          git config user.name "github-actions"
+          git config user.name "github-actions[bot]"
           git config user.email "actions@github.com"
+          
+          # یه برنچ موقت برای push امن
+          git checkout -b "parts-${GITHUB_RUN_ID}" 2>/dev/null || git checkout "parts-${GITHUB_RUN_ID}"
           git add parts/
-          git commit -m "Add file parts" || echo "No changes"
-          git push      
+          git commit -m "Add file parts" || echo "No changes to commit"
+          git push origin "parts-${GITHUB_RUN_ID}" --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
