@@ -1,4 +1,4 @@
-name: Download Direct Link
+name: Download to Repository
 
 on:
   workflow_dispatch:
@@ -7,9 +7,9 @@ on:
         description: 'لینک مستقیم فایل'
         required: true
       filename:
-        description: 'اسم فایل خروجی (مثلاً video.mp4)'
+        description: 'اسم فایل با پسوند (مثلاً video.mp4)'
         required: true
-        default: 'downloaded_file'
+        default: 'video.mp4'
 
 jobs:
   download:
@@ -17,22 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download file from direct link
+      - name: Download file
         run: |
           curl -L -o "${{ github.event.inputs.filename }}" "${{ github.event.inputs.url }}"
 
-      - name: Check file info
+      - name: Split into 20MB parts
         run: |
-          ls -lh
-          echo "Download completed"
+          mkdir -p parts
+          split -b 20M -d "${{ github.event.inputs.filename }}" parts/part_
 
-      - name: Split into 90MB parts
+      - name: Commit parts to repository
         run: |
-          split -b 90M -d "${{ github.event.inputs.filename }}" part_
-
-      - name: Upload parts
-        uses: actions/upload-artifact@v4
-        with:
-          name: file-parts
-          path: part_*
-          retention-days: 3      
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add parts/
+          git commit -m "Add file parts" || echo "No changes"
+          git push      
