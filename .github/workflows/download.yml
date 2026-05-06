@@ -1,4 +1,4 @@
-name: Download YouTube 720p
+name: Download YouTube
 
 on:
   workflow_dispatch:
@@ -17,22 +17,29 @@ jobs:
         run: |
           curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
           chmod +x yt-dlp
+          ./yt-dlp --version
 
-      - name: Download 720p video with audio
+      - name: Download video
         run: |
           ./yt-dlp \
-            -f "bestvideo[height<=720]+bestaudio/best[height<=720]" \
+            -f "best[height<=720]" \
             --merge-output-format mp4 \
-            --output "video.mp4" \
+            --output "video.%(ext)s" \
+            --no-playlist \
             "${{ github.event.inputs.url }}"
+
+      - name: Check downloaded file
+        run: |
+          ls -lh video.*
+          echo "Download completed"
 
       - name: Split into 90MB parts
         run: |
-          split -b 90M -d video.mp4 part_
+          split -b 90M -d video.* part_
 
       - name: Upload parts
         uses: actions/upload-artifact@v4
         with:
           name: video-parts
           path: part_*
-          retention-days: 3
+          retention-days: 3      
