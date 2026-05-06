@@ -1,11 +1,15 @@
-name: Download YouTube
+name: Download Direct Link
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'لینک ویدیوی یوتیوب'
+        description: 'لینک مستقیم فایل'
         required: true
+      filename:
+        description: 'اسم فایل خروجی (مثلاً video.mp4)'
+        required: true
+        default: 'downloaded_file'
 
 jobs:
   download:
@@ -13,33 +17,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install yt-dlp
+      - name: Download file from direct link
         run: |
-          curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
-          chmod +x yt-dlp
-          ./yt-dlp --version
+          curl -L -o "${{ github.event.inputs.filename }}" "${{ github.event.inputs.url }}"
 
-      - name: Download video
+      - name: Check file info
         run: |
-          ./yt-dlp \
-            -f "best[height<=720]" \
-            --merge-output-format mp4 \
-            --output "video.%(ext)s" \
-            --no-playlist \
-            "${{ github.event.inputs.url }}"
-
-      - name: Check downloaded file
-        run: |
-          ls -lh video.*
+          ls -lh
           echo "Download completed"
 
       - name: Split into 90MB parts
         run: |
-          split -b 90M -d video.* part_
+          split -b 90M -d "${{ github.event.inputs.filename }}" part_
 
       - name: Upload parts
         uses: actions/upload-artifact@v4
         with:
-          name: video-parts
+          name: file-parts
           path: part_*
           retention-days: 3      
