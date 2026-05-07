@@ -23,14 +23,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Install yt-dlp
+      - name: Install yt-dlp and dependencies
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq nodejs npm
           curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp
           chmod +x yt-dlp
 
       - name: Download from YouTube
         run: |
           ./yt-dlp \
+            --js-runtimes node \
+            --extractor-args "youtube:player_client=android_vr,web" \
             -f "bestvideo[height<=720]+bestaudio/best[height<=720]/best" \
             --merge-output-format mp4 \
             --output "video.mp4" \
