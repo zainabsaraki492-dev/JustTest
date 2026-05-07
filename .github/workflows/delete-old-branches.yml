@@ -1,0 +1,38 @@
+name: Delete Old Download Branches
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'برای تایید حذف، کلمه yes را بنویس'
+        required: true
+        default: 'no'
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  delete-branches:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'yes'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Delete branches starting with 'parts-' or 'youtube-'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "در حال بررسی شاخه‌های راه دور..."
+          git branch -r | grep -E 'origin/(parts-|youtube-)' | while read branch; do
+            branch_name=$(echo $branch | sed 's/origin\///')
+            echo "در حال حذف شاخه: $branch_name"
+            git push origin --delete "$branch_name"
+          done
+          echo "کار تموم شد. همه شاخه‌های مربوط به دانلودها پاک شدند."
