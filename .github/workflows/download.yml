@@ -38,7 +38,7 @@ jobs:
         run: |
           rm -rf parts
           mkdir -p parts
-          split -b 20M -d downloaded_file parts/part_
+          split -b 90M -d downloaded_file parts/part_
           ls -lh parts/
 
       - name: Commit and push changes
